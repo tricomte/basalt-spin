@@ -28,7 +28,7 @@ function TypewriterLine({ text, active }) {
   )
 }
 
-function TerminalInput({ placeholder, type, autoComplete, value, onChange }) {
+function TerminalInput({ placeholder, type, autoComplete, value, onChange, required: isRequired }) {
   return (
     <div className="group relative">
       <label className="sr-only">{placeholder}</label>
@@ -39,6 +39,7 @@ function TerminalInput({ placeholder, type, autoComplete, value, onChange }) {
         autoComplete={autoComplete}
         value={value}
         onChange={onChange}
+        required={isRequired}
       />
       <span
         aria-hidden
@@ -108,6 +109,7 @@ export function RegistrationForm({ onSubmit }) {
             autoComplete="given-name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
+            required
           />
           <TerminalInput
             placeholder="last_name"
@@ -115,6 +117,7 @@ export function RegistrationForm({ onSubmit }) {
             autoComplete="family-name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
+            required
           />
           <TerminalInput
             placeholder="company"
@@ -122,6 +125,7 @@ export function RegistrationForm({ onSubmit }) {
             autoComplete="organization"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
+            required
           />
           <TerminalInput
             placeholder="email_address"
@@ -129,6 +133,7 @@ export function RegistrationForm({ onSubmit }) {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
 
           <button
