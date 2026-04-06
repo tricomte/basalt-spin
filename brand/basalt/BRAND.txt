@@ -1,0 +1,10 @@
+Logo Basalt — miroir du fichier canonique.
+
+Emplacements synchronisés (même contenu) :
+  ~/.cursor/branding/basalt/basalt-logo.svg
+  ~/Basalt/logo/basalt-logo.svg
+  ~/Desktop/basalt-logo.svg
+  brand/basalt/basalt-logo.svg   (ce dossier)
+  basalt-spin/src/assets/basalt-logo.svg   (import Vite ?raw dans BasaltLogo.jsx)
+
+Quand tu modifies le logo : mets à jour basalt-spin/src/assets/basalt-logo.svg puis recopie vers les autres chemins (ou demande à l’agent de synchroniser).

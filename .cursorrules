@@ -1,0 +1,7 @@
+Basalt brand mark (SVG plein logo, currentColor) — même fichier partout :
+  ~/.cursor/branding/basalt/basalt-logo.svg
+  ~/Basalt/logo/basalt-logo.svg
+  ~/Desktop/basalt-logo.svg
+  brand/basalt/basalt-logo.svg
+  basalt-spin/src/assets/basalt-logo.svg (import ?raw dans l’app)
+Ne pas mettre le logo dans public/ (pas d’URL statique). Voir brand/basalt/BRAND.txt.

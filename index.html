@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>getbasalt.ai — Spin to Win</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes popIn{0%{transform:scale(0) rotate(-10deg)}70%{transform:scale(1.08) rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes shakeWheel{0%,100%{transform:rotate(0)}25%{transform:rotate(1.2deg)}75%{transform:rotate(-1.2deg)}}
+@keyframes subtleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.7}}
+@keyframes teaseSlam{0%{transform:translateX(-50%) scale(.3);opacity:0}50%{transform:translateX(-50%) scale(1.1);opacity:1}100%{transform:translateX(-50%) scale(1);opacity:1}}
+@keyframes teaseShake{0%,100%{transform:translateX(-50%) rotate(0)}25%{transform:translateX(-50%) rotate(-2.5deg)}75%{transform:translateX(-50%) rotate(2.5deg)}}
+
+:root{
+  --bg:#0a0a0f;
+  --surface:rgba(255,255,255,.04);
+  --surface-hover:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.06);
+  --border-hover:rgba(255,255,255,.1);
+  --text:rgba(255,255,255,.9);
+  --text-dim:rgba(255,255,255,.45);
+  --accent:#8b5cf6;
+  --accent-glow:rgba(139,92,246,.25);
+  --gold:#fbbf24;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --ease-bounce:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(0,.55,.45,1);
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
+  background:var(--bg);
+  min-height:100dvh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Ambient glow */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%,rgba(139,92,246,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 30% at 10% 90%,rgba(59,130,246,.04) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 90% 80%,rgba(236,72,153,.03) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+/* Stars */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{
+  position:absolute;border-radius:50%;background:#fff;
+  animation:twinkle var(--d,3s) cubic-bezier(.4,0,.6,1) infinite;
+  animation-delay:var(--del,0s);
+}
+
+.app{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;
+  gap:20px;padding:20px;width:100%;max-width:520px;
+  animation:fadeIn .8s var(--ease) both;
+}
+
+/* Header */
+.header{text-align:center;animation:fadeIn .8s var(--ease) .1s both}
+.brand{
+  font-size:.65rem;font-weight:600;letter-spacing:5px;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:8px;line-height:1.4;
+}
+.title{
+  font-size:2.6rem;font-weight:900;color:var(--text);letter-spacing:3px;
+  line-height:1.1;
+  text-shadow:0 0 60px rgba(139,92,246,.2),0 0 120px rgba(139,92,246,.08);
+}
+
+/* Wheel */
+.wheel-wrapper{
+  position:relative;overflow:visible;
+  width:min(75vw,380px);height:min(75vw,380px);
+  animation:fadeIn .8s var(--ease) .2s both, subtleFloat 6s cubic-bezier(.4,0,.6,1) infinite;
+  animation-delay:.2s, 1s;
+}
+.wheel-wrapper.spinning{animation:none}
+.wheel-wrapper.shaking{animation:shakeWheel .08s ease-in-out infinite}
+
+canvas#wheel{width:100%;height:100%;display:block;position:relative;z-index:2}
+
+/* Glow canvas — larger, behind wheel, for unclipped bloom */
+.glow-canvas{
+  position:absolute;
+  top:-60px;left:-60px;
+  width:calc(100% + 120px);height:calc(100% + 120px);
+  z-index:1;pointer-events:none;
+}
+
+/* Pointer */
+.pointer-wrap{
+  position:absolute;top:-22px;left:50%;transform:translateX(-50%);z-index:10;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));
+}
+.pointer{
+  width:0;height:0;
+  border-left:17px solid transparent;border-right:17px solid transparent;
+  border-top:38px solid #fff;
+  transition:transform .05s var(--ease);
+}
+.pointer.tick{transform:scaleY(.82)}
+
+/* Game Boy A/B buttons — centered below wheel */
+.gb-row{
+  display:flex;gap:28px;align-items:center;justify-content:center;
+  animation:fadeIn .8s var(--ease) .3s both;
+  margin-top:4px;
+}
+.gb-btn{
+  width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  background:linear-gradient(155deg,rgba(60,55,85,.9),rgba(35,30,55,.95));
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:
+    0 5px 0 rgba(0,0,0,.3),
+    0 8px 20px rgba(0,0,0,.25),
+    0 2px 8px rgba(0,0,0,.15),
+    inset 0 1px 1px rgba(255,255,255,.06),
+    inset 0 -1px 3px rgba(0,0,0,.2);
+  transition:all .1s var(--ease);
+  -webkit-tap-highlight-color:transparent;
+}
+.gb-btn::before{
+  content:'';position:absolute;
+  top:5px;left:12px;right:12px;height:38%;border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),transparent);
+  pointer-events:none;
+}
+.gb-btn:hover:not(:disabled){
+  border-color:rgba(255,255,255,.1);
+  background:linear-gradient(155deg,rgba(70,65,100,.9),rgba(42,36,65,.95));
+  box-shadow:
+    0 5px 0 rgba(0,0,0,.3),
+    0 10px 28px rgba(0,0,0,.3),
+    0 2px 8px rgba(0,0,0,.15),
+    inset 0 1px 1px rgba(255,255,255,.08),
+    inset 0 -1px 3px rgba(0,0,0,.2);
+}
+.gb-btn:active:not(:disabled){
+  transform:translateY(4px);
+  box-shadow:0 1px 0 rgba(0,0,0,.25),0 2px 6px rgba(0,0,0,.2),inset 0 2px 6px rgba(0,0,0,.3);
+  transition:all .04s var(--ease);
+}
+.gb-btn:disabled{opacity:.25;cursor:not-allowed;transform:none!important}
+.gb-letter{
+  font-size:1.3rem;font-weight:800;color:rgba(255,255,255,.35);
+  line-height:1;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.3);
+  transition:color .2s var(--ease);
+}
+.gb-btn:hover:not(:disabled) .gb-letter{color:rgba(255,255,255,.5)}
+
+/* Modal — glassmorphism */
+.modal-overlay{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  opacity:1;transition:opacity .35s var(--ease);
+}
+.modal-overlay.hidden{opacity:0;pointer-events:none}
+
+.modal{
+  width:90%;max-width:370px;
+  background:linear-gradient(165deg,rgba(20,18,40,.92),rgba(28,25,55,.88));
+  backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:28px;padding:48px 28px 32px;
+  text-align:center;position:relative;overflow:hidden;
+  animation:slideUp .5s var(--ease-bounce);
+  box-shadow:0 24px 64px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.modal-overlay.hidden .modal{animation:none}
+.modal::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:140px;
+  background:linear-gradient(180deg,rgba(139,92,246,.08),transparent);
+  pointer-events:none;
+}
+
+.modal-emoji{
+  font-size:4rem;margin-bottom:12px;position:relative;z-index:1;
+  animation:popIn .55s var(--ease-bounce);
+}
+.modal.jackpot .modal-emoji{font-size:5rem}
+
+.modal h2{
+  color:var(--text);font-size:1.4rem;font-weight:800;
+  margin-bottom:8px;position:relative;z-index:1;
+  line-height:1.3;letter-spacing:.5px;
+}
+.modal.jackpot h2{
+  background:linear-gradient(90deg,#fbbf24,#fde68a,#fbbf24);
+  background-size:200% auto;animation:shimmer 2.5s linear infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  font-size:1.7rem;
+}
+
+.modal p{
+  color:var(--text-dim);font-size:.88rem;line-height:1.7;
+  margin-bottom:28px;position:relative;z-index:1;
+  letter-spacing:.2px;
+}
+
+.modal-btn{
+  position:relative;z-index:1;
+  background:var(--surface);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  color:var(--text);border:1px solid var(--border);
+  border-radius:14px;padding:14px 36px;
+  font-size:.85rem;font-weight:700;letter-spacing:1px;line-height:1.3;
+  cursor:pointer;
+  transition:all .25s var(--ease);
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.modal-btn:hover{
+  background:var(--surface-hover);
+  border-color:var(--border-hover);
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+  transform:translateY(-1px);
+}
+.modal-btn:active{
+  transform:translateY(1px);
+  box-shadow:0 1px 4px rgba(0,0,0,.1);
+  transition:all .06s var(--ease);
+}
+
+/* Confetti */
+.confetti-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:600}
+
+/* Tease */
+.tease-text{
+  position:absolute;bottom:-48px;left:50%;transform:translateX(-50%);
+  opacity:0;pointer-events:none;white-space:nowrap;
+  transition:opacity .2s var(--ease);
+}
+.tease-text.visible{opacity:1}
+.tease-text.visible .tease-inner{
+  animation:teaseSlam .3s var(--ease-bounce) forwards, teaseShake .35s .3s ease-in-out 4;
+}
+.tease-inner{
+  display:inline-block;font-size:1rem;font-weight:900;
+  color:var(--gold);letter-spacing:1.5px;
+  text-shadow:0 0 24px rgba(251,191,36,.5),0 0 48px rgba(251,191,36,.2);
+}
+
+/* Responsive */
+@media(max-width:380px){
+  .title{font-size:2rem;letter-spacing:2px}
+  .gb-btn{width:52px;height:52px}
+  .gb-letter{font-size:1.1rem}
+  .modal{padding:36px 20px 24px;border-radius:24px}
+  .modal h2{font-size:1.2rem}
+  .modal.jackpot h2{font-size:1.4rem}
+}
+@media(min-height:780px){
+  .app{gap:28px}
+}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars-container"></div>
+
+<div class="app">
+  <div class="header">
+    <div class="brand">getbasalt.ai</div>
+    <div class="title">SPIN TO WIN</div>
+  </div>
+
+  <div class="wheel-wrapper" id="wheel-wrapper">
+    <canvas id="glow-canvas" class="glow-canvas"></canvas>
+    <div class="pointer-wrap"><div class="pointer" id="pointer"></div></div>
+    <canvas id="wheel"></canvas>
+    <div class="tease-text" id="tease-text">
+      <span class="tease-inner">😱 SO CLOSE!!!</span>
+    </div>
+  </div>
+
+  <div class="gb-row">
+    <button class="gb-btn" id="btn-b"><span class="gb-letter">B</span></button>
+    <button class="gb-btn" id="btn-a"><span class="gb-letter">A</span></button>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal" id="modal">
+    <div class="modal-emoji" id="modal-emoji"></div>
+    <h2 id="modal-title"></h2>
+    <p id="modal-text"></p>
+    <button id="modal-close" class="modal-btn">Spin Again</button>
+  </div>
+</div>
+
+<canvas id="confetti" class="confetti-canvas"></canvas>
+
+<script>
+// Stars
+(function(){
+  const c = document.getElementById('stars-container');
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2 + 0.5;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*5}s;--del:${Math.random()*5}s;opacity:${.1+Math.random()*.35}`;
+    c.appendChild(s);
+  }
+})();
+
+// Prizes
+const PRIZES = [
+  { label: 'Mac Mini',       color: '#F5C400', emoji: '💻', premium: true, weight: 1 },
+  { label: 'T-Shirt',        color: '#7c3aed', emoji: '👕', weight: 1 },
+  { label: 'Sticker Pack',   color: '#2563eb', emoji: '🎨', weight: 1 },
+  { label: 'Coffee w/ Team', color: '#0d9488', emoji: '☕', weight: 1 },
+  { label: 'Surprise Gift',  color: '#dc2626', emoji: '🎉', weight: 1 },
+];
+const MAC = 0, TSHIRT = 1;
+const totalW = PRIZES.reduce((s,p) => s + p.weight, 0);
+const segs = [];
+let cum = 0;
+for (const p of PRIZES) { const a = (p.weight/totalW)*2*Math.PI; segs.push({s:cum,e:cum+a,a}); cum+=a; }
+
+// DOM
+const cv = document.getElementById('wheel'), c = cv.getContext('2d');
+const gc = document.getElementById('glow-canvas'), gx = gc.getContext('2d');
+const cc = document.getElementById('confetti'), cx = cc.getContext('2d');
+const wrap = document.getElementById('wheel-wrapper');
+const ptr = document.getElementById('pointer');
+const tease = document.getElementById('tease-text');
+const btnA = document.getElementById('btn-a');
+const btnB = document.getElementById('btn-b');
+const ov = document.getElementById('modal-overlay');
+const modal = document.getElementById('modal');
+const mE = document.getElementById('modal-emoji');
+const mT = document.getElementById('modal-title');
+const mP = document.getElementById('modal-text');
+const mC = document.getElementById('modal-close');
+
+let ang = 0, spin_ = false, dpr = 1, R = 0, Cx = 0, Cy = 0;
+
+// Audio
+const ac = new (window.AudioContext||window.webkitAudioContext)();
+function tick(){ const o=ac.createOscillator(),g=ac.createGain(); o.connect(g);g.connect(ac.destination); o.frequency.value=1800+Math.random()*600;o.type='sine'; g.gain.setValueAtTime(.06,ac.currentTime); g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.04); o.start();o.stop(ac.currentTime+.04); }
+function winSfx(){ [523,659,784,1047].forEach((f,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.connect(g);g.connect(ac.destination); o.frequency.value=f;o.type='sine'; const t=ac.currentTime+i*.12; g.gain.setValueAtTime(.14,t); g.gain.exponentialRampToValueAtTime(.001,t+.3); o.start(t);o.stop(t+.3); }); }
+function loseSfx(){ const o=ac.createOscillator(),g=ac.createGain(); o.connect(g);g.connect(ac.destination); o.frequency.value=250;o.type='triangle'; g.gain.setValueAtTime(.08,ac.currentTime); g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.4); o.start();o.stop(ac.currentTime+.4); }
+
+// Setup
+// Glow canvas metrics
+let gDpr=1, gCx=0, gCy=0;
+
+function setup(){
+  dpr=window.devicePixelRatio||1;
+  const r=cv.getBoundingClientRect();
+  cv.width=r.width*dpr; cv.height=r.height*dpr;
+  Cx=r.width/2; Cy=r.height/2;
+  R=Math.min(Cx,Cy)-18;
+  // Glow canvas is 120px bigger via CSS — read its actual size
+  const gr=gc.getBoundingClientRect();
+  gc.width=gr.width*dpr; gc.height=gr.height*dpr;
+  gCx=gr.width/2; gCy=gr.height/2;
+  cc.width=innerWidth; cc.height=innerHeight;
+}
+
+// Sparkle stars — pre-generated positions within Mac Mini slice (polar coords)
+const sparkles = [];
+for(let i=0;i<4;i++){
+  sparkles.push({
+    rFrac: .3 + Math.random()*.55,        // radius fraction (0.3–0.85 of R)
+    aFrac: .15 + Math.random()*.7,         // angle fraction within segment (0.15–0.85)
+    phase: Math.random()*Math.PI*2,        // animation phase offset
+    speed: 1.5 + Math.random()*2,          // twinkle speed
+    size: 2 + Math.random()*3,             // star size
+  });
+}
+
+function drawStar(ctx, x, y, r, points){
+  ctx.beginPath();
+  for(let i=0;i<points*2;i++){
+    const a=i*Math.PI/points - Math.PI/2;
+    const rad = i%2===0 ? r : r*.4;
+    if(i===0) ctx.moveTo(x+Math.cos(a)*rad, y+Math.sin(a)*rad);
+    else ctx.lineTo(x+Math.cos(a)*rad, y+Math.sin(a)*rad);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+// Draw
+function draw(a, time){
+  // === GLOW CANVAS — separate layer, unclipped, drawn first ===
+  gx.save(); gx.scale(dpr, dpr);
+  gx.clearRect(0, 0, gCx*2, gCy*2);
+  if(time !== undefined){
+    const macSeg = segs[MAC];
+    const glowBlur = 90 + Math.sin(time * .002) * 60; // 30–150
+    const glowA = .25 + Math.sin(time * .002) * .12;
+    gx.save();
+    gx.translate(gCx, gCy); gx.rotate(a);
+    // Pass 1 — big bloom
+    gx.globalAlpha = glowA;
+    gx.beginPath(); gx.moveTo(0,0); gx.arc(0,0,R+12,macSeg.s-.05,macSeg.e+.05); gx.closePath();
+    gx.fillStyle = '#FFD700';
+    gx.shadowColor = '#FFD700';
+    gx.shadowBlur = glowBlur;
+    gx.fill();
+    // Pass 2 — huge spread
+    gx.globalAlpha = glowA * .4;
+    gx.shadowBlur = glowBlur + 80;
+    gx.fill();
+    // Pass 3 — massive ambient
+    gx.globalAlpha = glowA * .2;
+    gx.shadowBlur = glowBlur + 140;
+    gx.fill();
+    gx.restore();
+  }
+  gx.restore();
+
+  // === MAIN WHEEL CANVAS ===
+  c.save(); c.scale(dpr,dpr);
+  c.clearRect(0,0,Cx*2,Cy*2);
+
+  // Outer ring — dark, subtle gradient
+  const rw=10;
+  c.beginPath(); c.arc(Cx,Cy,R+rw,0,2*Math.PI);
+  const rg=c.createLinearGradient(Cx-R-rw,Cy-R-rw,Cx+R+rw,Cy+R+rw);
+  rg.addColorStop(0,'#16162a'); rg.addColorStop(.5,'#1f1f38'); rg.addColorStop(1,'#16162a');
+  c.fillStyle=rg; c.fill();
+  c.strokeStyle='rgba(255,255,255,.05)'; c.lineWidth=1; c.stroke();
+
+  // Inner ring edge
+  c.beginPath(); c.arc(Cx,Cy,R+.5,0,2*Math.PI);
+  c.strokeStyle='rgba(255,255,255,.08)'; c.lineWidth=.5; c.stroke();
+
+  c.save(); c.translate(Cx,Cy); c.rotate(a);
+
+  // Segments
+  PRIZES.forEach((p,i)=>{
+    const sg=segs[i], s=sg.s, e=sg.e;
+
+    // Fill
+    c.beginPath(); c.moveTo(0,0); c.arc(0,0,R,s,e); c.closePath();
+    if(p.premium){
+      const grd=c.createRadialGradient(0,0,R*.08,0,0,R);
+      grd.addColorStop(0,'#FFE066'); grd.addColorStop(.4,'#F5C400'); grd.addColorStop(1,'#C49B00');
+      c.fillStyle=grd;
+    } else { c.fillStyle=p.color; }
+    c.fill();
+
+    // Subtle inner brightness
+    c.beginPath(); c.moveTo(0,0); c.arc(0,0,R,s,e); c.closePath();
+    const ig=c.createRadialGradient(0,0,0,0,0,R);
+    ig.addColorStop(0,'rgba(255,255,255,.06)'); ig.addColorStop(.6,'transparent');
+    c.fillStyle=ig; c.fill();
+
+    // Divider lines
+    c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(s)*R,Math.sin(s)*R);
+    c.strokeStyle='rgba(255,255,255,.12)'; c.lineWidth=1; c.stroke();
+
+    // Mac Mini: thick gold border + sweep lines + sparkles
+    if(p.premium && time !== undefined){
+      c.save();
+
+      // Thick golden border on slice edges
+      c.shadowColor = '#FFD700';
+      c.shadowBlur = 20;
+      c.strokeStyle = '#FFD700';
+      c.lineWidth = 6;
+      // Arc edge
+      c.beginPath(); c.arc(0,0,R-3,s+.01,e-.01); c.stroke();
+      // Radial edges
+      c.beginPath();
+      c.moveTo(Math.cos(s)*R*.12, Math.sin(s)*R*.12);
+      c.lineTo(Math.cos(s)*R, Math.sin(s)*R);
+      c.moveTo(Math.cos(e)*R*.12, Math.sin(e)*R*.12);
+      c.lineTo(Math.cos(e)*R, Math.sin(e)*R);
+      c.stroke();
+
+      c.restore();
+
+      // Sweeping bright diagonal lines — 3 lines, staggered, 2s cycle
+      c.save();
+      // Clip to the slice so lines don't bleed out
+      c.beginPath(); c.moveTo(0,0); c.arc(0,0,R-1,s,e); c.closePath(); c.clip();
+
+      for(let ln=0;ln<3;ln++){
+        const cycle = 2000; // 2 seconds per sweep
+        const offset = ln * (cycle / 3); // stagger evenly
+        const t01 = ((time + offset) % cycle) / cycle; // 0–1
+        // Fade: 0→peak→0 over the sweep
+        const fade = Math.sin(t01 * Math.PI);
+        const lineAlpha = fade * .7;
+        if(lineAlpha < .02) continue;
+
+        // Position: sweep from inner to outer along the segment
+        const sweepR = t01 * R * 1.2;
+        const mid = s + sg.a / 2;
+
+        c.globalAlpha = lineAlpha;
+        c.strokeStyle = '#fff';
+        c.shadowColor = '#FFD700';
+        c.shadowBlur = 12;
+        c.lineWidth = 3;
+
+        // Draw a line perpendicular to the radius at sweepR
+        const px = Math.cos(mid) * sweepR;
+        const py = Math.sin(mid) * sweepR;
+        const perpX = -Math.sin(mid) * R * .5;
+        const perpY = Math.cos(mid) * R * .5;
+        c.beginPath();
+        c.moveTo(px - perpX, py - perpY);
+        c.lineTo(px + perpX, py + perpY);
+        c.stroke();
+      }
+      c.restore();
+
+      // Sparkle stars
+      c.save();
+      for(const sp of sparkles){
+        const spAlpha = .3 + Math.pow(Math.sin(time * .001 * sp.speed + sp.phase), 2) * .7;
+        const spAngle = s + sg.a * sp.aFrac;
+        const spR = R * sp.rFrac;
+        c.globalAlpha = spAlpha;
+        c.fillStyle = '#FFFFFF';
+        c.shadowColor = '#FFD700';
+        c.shadowBlur = 14 + Math.sin(time * .002 + sp.phase) * 8;
+        drawStar(c, Math.cos(spAngle)*spR, Math.sin(spAngle)*spR, 3.5, 4);
+      }
+      c.globalAlpha = 1; c.shadowBlur = 0;
+      c.restore();
+    }
+
+    // Label — horizontal (counter-rotate)
+    c.save();
+    const mid=s+sg.a/2, lr=R*.6;
+    c.translate(Math.cos(mid)*lr, Math.sin(mid)*lr);
+    c.rotate(-a);
+
+    const fs=R*.072;
+    c.textAlign='center'; c.textBaseline='middle';
+    c.shadowColor='rgba(0,0,0,.7)'; c.shadowBlur=5;
+
+    c.font=`${fs*1.5}px sans-serif`;
+    c.fillText(p.emoji, 0, -fs*.75);
+
+    c.font=`700 ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    c.fillStyle='#fff';
+    c.fillText(p.label, 0, fs*.55);
+
+    if(p.premium){
+      c.font=`800 ${fs*.48}px -apple-system, sans-serif`;
+      c.fillStyle='#fbbf24';
+      c.fillText('★ JACKPOT ★', 0, fs*1.6);
+    }
+    c.restore();
+  });
+
+  // Last divider
+  const ls=segs[segs.length-1];
+  c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(ls.e)*R,Math.sin(ls.e)*R);
+  c.strokeStyle='rgba(255,255,255,.12)'; c.lineWidth=1; c.stroke();
+
+  // Hub
+  const hr=R*.12;
+  c.beginPath(); c.arc(0,0,hr+3,0,2*Math.PI);
+  c.fillStyle='#1a1a28'; c.fill();
+  c.strokeStyle='rgba(255,255,255,.06)'; c.lineWidth=.5; c.stroke();
+
+  c.beginPath(); c.arc(0,0,hr,0,2*Math.PI);
+  const hg=c.createRadialGradient(-hr*.3,-hr*.3,0,0,0,hr);
+  hg.addColorStop(0,'#484860'); hg.addColorStop(.5,'#2a2a3a'); hg.addColorStop(1,'#151520');
+  c.fillStyle=hg; c.fill();
+
+  c.beginPath(); c.arc(-hr*.25,-hr*.28,hr*.28,0,2*Math.PI);
+  const sp=c.createRadialGradient(-hr*.25,-hr*.28,0,-hr*.25,-hr*.28,hr*.28);
+  sp.addColorStop(0,'rgba(255,255,255,.3)'); sp.addColorStop(1,'transparent');
+  c.fillStyle=sp; c.fill();
+
+  c.restore(); c.restore();
+}
+
+// Segment at pointer
+function segAt(wa){
+  const p=((-Math.PI/2-wa)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  for(let i=0;i<segs.length;i++) if(p>=segs[i].s && p<segs[i].e) return i;
+  return 0;
+}
+
+// Target
+function pick(isA){ return isA ? (Math.random()<.5?MAC:[1,2,3,4][Math.floor(Math.random()*4)]) : TSHIRT; }
+function landAng(i){ const sg=segs[i],ct=sg.s+sg.a/2,t=-Math.PI/2-ct; return((t%(2*Math.PI))+2*Math.PI)%(2*Math.PI); }
+
+// Spin
+function spin(isA){
+  if(spin_) return;
+  if(ac.state==='suspended') ac.resume();
+  spin_=true; btnA.disabled=btnB.disabled=true;
+  tease.classList.remove('visible');
+
+  const tgt=pick(isA), win=tgt===MAC;
+  const la=landAng(tgt);
+  const jit=(Math.random()-.5)*segs[tgt].a*.6;
+  const spins=(8+Math.floor(Math.random()*4))*2*Math.PI;
+  const rem=((la-(ang%(2*Math.PI)))+2*Math.PI)%(2*Math.PI);
+  const total=ang+spins+rem+jit;
+
+  const start=ang, dur=5200+Math.random()*1500, t0=performance.now();
+  let ls=-1, td=false;
+
+  function frame(now){
+    const t=Math.min((now-t0)/dur,1);
+    const e=1-Math.pow(1-t,5);
+    ang=start+(total-start)*e;
+
+    const sg=segAt(ang);
+    if(sg!==ls){ ls=sg; tick(); ptr.classList.add('tick'); setTimeout(()=>ptr.classList.remove('tick'),50); if(navigator.vibrate) navigator.vibrate(5); }
+    if(!win && t>.80 && t<.97 && sg===MAC && !td){ td=true; tease.classList.add('visible'); wrap.classList.add('shaking'); setTimeout(()=>{tease.classList.remove('visible');wrap.classList.remove('shaking')},900); }
+
+    if(t<1) requestAnimationFrame(frame);
+    else{ spin_=false; btnA.disabled=btnB.disabled=false; wrap.classList.remove('shaking'); tease.classList.remove('visible'); if(navigator.vibrate) navigator.vibrate(win?[50,30,50,30,100]:[30]); setTimeout(()=>showResult(tgt),300); }
+  }
+  requestAnimationFrame(frame);
+}
+btnA.onclick=()=>spin(true);
+btnB.onclick=()=>spin(false);
+
+// Result
+function showResult(i){
+  const p=PRIZES[i], j=i===MAC;
+  modal.className='modal'+(j?' jackpot':'');
+  mE.textContent=p.emoji;
+  if(j){ mT.textContent='JACKPOT! Mac Mini!'; mP.textContent='Incredible! You just won a brand new Mac Mini!'; winSfx(); launchConfetti(true); }
+  else if(i===TSHIRT){ mT.textContent='You won a T-Shirt!'; mP.textContent='A fresh getbasalt.ai branded tee is coming your way!'; loseSfx(); launchConfetti(false); }
+  else{ mT.textContent=`You won: ${p.label}!`; const m={2:'A sticker pack to deck out your laptop!',3:'Coffee with the team — best ideas start here.',4:'A surprise gift is headed your way!'}; mP.textContent=m[i]||`Enjoy your ${p.label}!`; loseSfx(); }
+  ov.classList.remove('hidden');
+}
+mC.onclick=()=>{ ov.classList.add('hidden'); parts.length=0; cx.clearRect(0,0,cc.width,cc.height); };
+
+// Confetti
+const parts=[], CS=['#fbbf24','#6366f1','#ec4899','#10b981','#3b82f6','#ef4444','#fff'];
+function launchConfetti(big){
+  parts.length=0;
+  for(let i=0;i<(big?160:70);i++) parts.push({x:cc.width/2+(Math.random()-.5)*260,y:cc.height*.44,vx:(Math.random()-.5)*(big?22:12),vy:-Math.random()*(big?20:12)-5,sz:Math.random()*7+3,c:CS[Math.floor(Math.random()*CS.length)],r:Math.random()*Math.PI*2,rv:(Math.random()-.5)*.4,l:1,d:.005+Math.random()*.005,sh:Math.random()>.5?'r':'c'});
+}
+function tickC(){
+  cx.clearRect(0,0,cc.width,cc.height);
+  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.vy+=.35;p.y+=p.vy;p.vx*=.99;p.r+=p.rv;p.l-=p.d;if(p.l<=0||p.y>cc.height+30){parts.splice(i,1);continue}cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.globalAlpha=p.l;cx.fillStyle=p.c;if(p.sh==='r')cx.fillRect(-p.sz/2,-p.sz/4,p.sz,p.sz/2);else{cx.beginPath();cx.arc(0,0,p.sz/2,0,2*Math.PI);cx.fill()}cx.restore()}
+  requestAnimationFrame(tickC);
+}
+
+setup(); tickC();
+
+// Continuous render loop — keeps the glow animating even when idle
+function renderLoop(time){
+  draw(ang, time);
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
+window.onresize=()=>{setup()};
+</script>
+</body>
+</html>
