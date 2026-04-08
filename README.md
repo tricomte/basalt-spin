@@ -1,6 +1,12 @@
 # Basalt Spin
 
-Cyberpunk-themed prize roulette wheel built for Basalt tech events.
+Cyberpunk-themed prize roulette wheel for live tech events: attendees register, spin, and land weighted prizes with confetti, sound, and an optional admin override for the jackpot.
+
+![Demo](./docs/demo.png)
+
+## Motivation
+
+I wanted a memorable, on-brand moment for booth and meetup giveaways—something faster than a spreadsheet and more fun than a random number generator. Building it was a chance to push **motion design** (Framer Motion), **SVG**, and **browser audio** without a backend.
 
 ## Quick Start
 
@@ -11,6 +17,12 @@ npm run dev
 ```
 
 Open **http://localhost:5173** in your browser.
+
+_Add `docs/demo.png` (or swap the path above) with a screen recording or screenshot of the wheel._
+
+## Live demo
+
+If this repo is deployed to static hosting, add the URL here. Until then, run locally with `npm run dev`.
 
 ## How It Works
 

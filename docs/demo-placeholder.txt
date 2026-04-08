@@ -1,0 +1,1 @@
+Add docs/demo.png for the README hero image (wheel + registration UI).
